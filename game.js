@@ -1,34 +1,9 @@
-// Initialize Firebase and Database
-firebase.initializeApp(firebaseConfig);
-const database = firebase.database();
-const scoresRef = database.ref('/scores');
-
-// Listen for global score changes
-scoresRef.orderByChild('score')
-    .limitToLast(MAX_HIGH_SCORES)
-    .on('value', (snapshot) => {
-        globalScores = [];
-        snapshot.forEach((childSnapshot) => {
-            globalScores.push(childSnapshot.val());
-        });
-        globalScores.sort((a, b) => b.score - a.score);
-        console.log('Global scores updated:', globalScores);
-        if (currentView === 'global') {
-            updateHighScoresDisplay();
-        }
-    });
-
-const board = document.getElementById('gameBoard');
-const scoreElement = document.getElementById('scoreValue');
-const lastScoreElement = document.getElementById('lastScore');
-const lastScoreValueElement = document.getElementById('lastScoreValue');
-const scoresList = document.getElementById('scoresList');
-const nameInput = document.getElementById('nameInput');
-const playerNameInput = document.getElementById('playerName');
-const localTab = document.getElementById('localTab');
-const globalTab = document.getElementById('globalTab');
-
+// Constants
+const MAX_HIGH_SCORES = 10;
+const GAME_SPEED = 150; // milliseconds between moves
 const size = 15;
+
+// Game variables
 let snake = [];
 let food = { x: 0, y: 0 };
 let direction = 'right';
@@ -40,9 +15,61 @@ let highScores = [];
 let globalScores = [];
 let currentView = 'global';
 let playerName = localStorage.getItem('playerName') || '';
-const MAX_HIGH_SCORES = 10;
-const GAME_SPEED = 150; // milliseconds between moves
 let isPaused = false;
+
+// Firebase variables
+let database;
+let scoresRef;
+
+// Initialize Firebase and Database
+console.log('Current hostname:', window.location.hostname);
+console.log('Initializing Firebase with config:', { ...firebaseConfig, apiKey: '***' });
+
+try {
+    firebase.initializeApp(firebaseConfig);
+    database = firebase.database();
+    scoresRef = database.ref('/scores');
+    console.log('Firebase initialized successfully');
+
+    // Test database connection
+    scoresRef.once('value')
+        .then(snapshot => {
+            console.log('Database connection successful');
+            console.log('Current scores:', snapshot.val());
+        })
+        .catch(error => {
+            console.error('Database connection error:', error);
+        });
+
+    // Listen for global score changes
+    scoresRef.orderByChild('score')
+        .limitToLast(MAX_HIGH_SCORES)
+        .on('value', (snapshot) => {
+            globalScores = [];
+            snapshot.forEach((childSnapshot) => {
+                globalScores.push(childSnapshot.val());
+            });
+            globalScores.sort((a, b) => b.score - a.score);
+            console.log('Global scores updated:', globalScores);
+            if (currentView === 'global') {
+                updateHighScoresDisplay();
+            }
+        }, error => {
+            console.error('Error listening to scores:', error);
+        });
+} catch (error) {
+    console.error('Firebase initialization error:', error);
+}
+
+const board = document.getElementById('gameBoard');
+const scoreElement = document.getElementById('scoreValue');
+const lastScoreElement = document.getElementById('lastScore');
+const lastScoreValueElement = document.getElementById('lastScoreValue');
+const scoresList = document.getElementById('scoresList');
+const nameInput = document.getElementById('nameInput');
+const playerNameInput = document.getElementById('playerName');
+const localTab = document.getElementById('localTab');
+const globalTab = document.getElementById('globalTab');
 
 // Ask for player name if not set
 function askPlayerName() {

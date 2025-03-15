@@ -13,7 +13,6 @@ yarn.lock
 
 # Firebase config
 firebase-config.js
-
 # Build output
 dist/
 build/
