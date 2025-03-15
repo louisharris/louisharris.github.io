@@ -2,6 +2,7 @@ const board = document.getElementById('gameBoard');
 const scoreElement = document.getElementById('scoreValue');
 const finalScoreElement = document.getElementById('finalScore');
 const gameOverScreen = document.getElementById('gameOver');
+const scoresList = document.getElementById('scoresList');
 const size = 15;
 let snake = [{x: 7, y: 7}];
 let food = {x: 5, y: 5};
@@ -10,6 +11,53 @@ let score = 0;
 let gameLoop;
 let touchStartX = 0;
 let touchStartY = 0;
+let highScores = [];
+const MAX_HIGH_SCORES = 5;
+
+// Load high scores from localStorage
+function loadHighScores() {
+    const saved = localStorage.getItem('snakeHighScores');
+    highScores = saved ? JSON.parse(saved) : [];
+    updateHighScoresDisplay();
+}
+
+// Save high scores to localStorage
+function saveHighScores() {
+    localStorage.setItem('snakeHighScores', JSON.stringify(highScores));
+    updateHighScoresDisplay();
+}
+
+// Update the display of high scores
+function updateHighScoresDisplay() {
+    scoresList.innerHTML = '';
+    highScores
+        .sort((a, b) => b - a)
+        .slice(0, MAX_HIGH_SCORES)
+        .forEach((score, index) => {
+            const li = document.createElement('li');
+            li.className = 'score-item' + (score === highScores[0] ? ' new-high-score' : '');
+            li.innerHTML = `
+                <span class="score-rank">#${index + 1}</span>
+                <span class="score-value">${score}</span>
+            `;
+            scoresList.appendChild(li);
+        });
+}
+
+// Check if the current score is a high score
+function checkHighScore(score) {
+    const lowestScore = highScores.length < MAX_HIGH_SCORES ? 0 : Math.min(...highScores);
+    if (score > lowestScore || highScores.length < MAX_HIGH_SCORES) {
+        highScores.push(score);
+        highScores.sort((a, b) => b - a);
+        if (highScores.length > MAX_HIGH_SCORES) {
+            highScores.pop();
+        }
+        saveHighScores();
+        return true;
+    }
+    return false;
+}
 
 // Create the game board
 function initializeBoard() {
@@ -86,6 +134,12 @@ function generateFood() {
 function gameOver() {
     clearInterval(gameLoop);
     finalScoreElement.textContent = score;
+    const isHighScore = checkHighScore(score);
+    if (isHighScore) {
+        finalScoreElement.classList.add('new-high-score');
+    } else {
+        finalScoreElement.classList.remove('new-high-score');
+    }
     gameOverScreen.style.display = 'flex';
     setTimeout(() => gameOverScreen.classList.add('visible'), 0);
 }
@@ -95,6 +149,7 @@ function resetGame() {
     direction = 'right';
     score = 0;
     scoreElement.textContent = score;
+    finalScoreElement.classList.remove('new-high-score');
     generateFood();
     gameOverScreen.classList.remove('visible');
     setTimeout(() => gameOverScreen.style.display = 'none', 300);
@@ -187,6 +242,7 @@ document.addEventListener('dblclick', (e) => {
 
 // Initialize game
 function init() {
+    loadHighScores();
     initializeBoard();
     setupKeyboardControls();
     setupTouchControls();
