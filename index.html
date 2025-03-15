@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Snake Game</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-database-compat.js"></script>
+    
+    <!-- Firebase Config -->
+    <script src="firebase-config.js"></script>
+    
+    <!-- Game Script -->
+    <script src="game.js" defer></script>
+</head>
+<body>
+    <div class="game-wrapper">
+        <div class="game-container">
+            <div class="game-header">
+                <h1>Snake</h1>
+                <div class="score">Score: <span id="scoreValue" class="score-value">0</span></div>
+                <div id="lastScore" class="last-score" style="display: none;">
+                    Last Score: <span id="lastScoreValue">0</span>
+                </div>
+            </div>
+            <table id="gameBoard"></table>
+            <div class="controls">
+                Use W, A, S, D or Arrow keys to move
+            </div>
+            <div class="mobile-controls">
+                <div class="control-row">
+                    <button class="control-btn" id="upBtn">↑</button>
+                </div>
+                <div class="control-row">
+                    <button class="control-btn" id="leftBtn">←</button>
+                    <button class="control-btn" id="rightBtn">→</button>
+                </div>
+                <div class="control-row">
+                    <button class="control-btn" id="downBtn">↓</button>
+                </div>
+            </div>
+        </div>
+        <div class="leaderboard">
+            <h2>High Scores</h2>
+            <div class="leaderboard-tabs">
+                <button id="localTab" class="tab-btn active">Personal Best</button>
+                <button id="globalTab" class="tab-btn">Global Top</button>
+            </div>
+            <ul id="scoresList" class="scores-list">
+                <!-- Scores will be inserted here -->
+            </ul>
+        </div>
+    </div>
+    <div id="nameInput" class="name-input-overlay" style="display: none;">
+        <div class="name-input-content">
+            <p>Enter your name for the leaderboard:</p>
+            <input type="text" id="playerName" maxlength="50" placeholder="Your name" size="30">
+        </div>
+    </div>
+</body>
+</html>
