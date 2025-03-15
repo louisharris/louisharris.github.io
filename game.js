@@ -23,7 +23,7 @@ let scoresRef;
 
 // Initialize Firebase and Database
 console.log('Current hostname:', window.location.hostname);
-console.log('Initializing Firebase with config:', { ...window.firebaseConfig, apiKey: '***' });
+console.log('Initializing Firebase with config:', window.firebaseConfig);
 
 try {
     firebase.initializeApp(window.firebaseConfig);
