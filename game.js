@@ -8,6 +8,8 @@ let food = {x: 5, y: 5};
 let direction = 'right';
 let score = 0;
 let gameLoop;
+let touchStartX = 0;
+let touchStartY = 0;
 
 // Create the game board
 function initializeBoard() {
@@ -99,34 +101,95 @@ function resetGame() {
     gameLoop = setInterval(moveSnake, 150);
 }
 
+function changeDirection(newDirection) {
+    // Prevent 180-degree turns
+    const opposites = {
+        'up': 'down', 'down': 'up',
+        'left': 'right', 'right': 'left'
+    };
+    if (opposites[newDirection] !== direction) {
+        direction = newDirection;
+    }
+}
+
 // Handle keyboard controls
-function setupControls() {
+function setupKeyboardControls() {
     document.addEventListener('keydown', (e) => {
         const key = e.key.toLowerCase();
-        const newDirection = {
+        const directionMap = {
             'w': 'up', 'arrowup': 'up',
             's': 'down', 'arrowdown': 'down',
             'a': 'left', 'arrowleft': 'left',
             'd': 'right', 'arrowright': 'right'
-        }[key];
-
-        if (newDirection) {
-            // Prevent 180-degree turns
-            const opposites = {
-                'up': 'down', 'down': 'up',
-                'left': 'right', 'right': 'left'
-            };
-            if (opposites[newDirection] !== direction) {
-                direction = newDirection;
-            }
+        };
+        
+        if (directionMap[key]) {
+            e.preventDefault(); // Prevent page scroll on arrow keys
+            changeDirection(directionMap[key]);
         }
     });
 }
 
+// Handle touch controls
+function setupTouchControls() {
+    // Button controls
+    document.getElementById('upBtn').addEventListener('click', () => changeDirection('up'));
+    document.getElementById('downBtn').addEventListener('click', () => changeDirection('down'));
+    document.getElementById('leftBtn').addEventListener('click', () => changeDirection('left'));
+    document.getElementById('rightBtn').addEventListener('click', () => changeDirection('right'));
+
+    // Swipe controls
+    document.addEventListener('touchstart', (e) => {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+    }, false);
+
+    document.addEventListener('touchmove', (e) => {
+        if (!touchStartX || !touchStartY) return;
+
+        const touchEndX = e.touches[0].clientX;
+        const touchEndY = e.touches[0].clientY;
+        
+        const deltaX = touchEndX - touchStartX;
+        const deltaY = touchEndY - touchStartY;
+        
+        // Require a minimum swipe distance to trigger direction change
+        const minSwipeDistance = 30;
+        
+        if (Math.abs(deltaX) > Math.abs(deltaY)) {
+            if (Math.abs(deltaX) > minSwipeDistance) {
+                changeDirection(deltaX > 0 ? 'right' : 'left');
+            }
+        } else {
+            if (Math.abs(deltaY) > minSwipeDistance) {
+                changeDirection(deltaY > 0 ? 'down' : 'up');
+            }
+        }
+        
+        // Reset touch start coordinates
+        touchStartX = touchEndX;
+        touchStartY = touchEndY;
+        
+        // Prevent page scrolling while playing
+        e.preventDefault();
+    }, { passive: false });
+
+    document.addEventListener('touchend', () => {
+        touchStartX = 0;
+        touchStartY = 0;
+    }, false);
+}
+
+// Prevent zooming on double tap
+document.addEventListener('dblclick', (e) => {
+    e.preventDefault();
+}, { passive: false });
+
 // Initialize game
 function init() {
     initializeBoard();
-    setupControls();
+    setupKeyboardControls();
+    setupTouchControls();
     resetGame();
 }
 
