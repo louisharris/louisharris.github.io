@@ -29,3 +29,4 @@ Then visit `http://localhost:8000` in your browser.
 ### Mobile
 - Use on-screen direction buttons
 - Or swipe in any direction to control the snake
+- Leaderboard doesnt work yet
