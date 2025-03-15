@@ -1,55 +1,275 @@
+// Initialize Firebase and Database
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
+const scoresRef = database.ref('/scores');
+
+// Listen for global score changes
+scoresRef.orderByChild('score')
+    .limitToLast(MAX_HIGH_SCORES)
+    .on('value', (snapshot) => {
+        globalScores = [];
+        snapshot.forEach((childSnapshot) => {
+            globalScores.push(childSnapshot.val());
+        });
+        globalScores.sort((a, b) => b.score - a.score);
+        console.log('Global scores updated:', globalScores);
+        if (currentView === 'global') {
+            updateHighScoresDisplay();
+        }
+    });
+
 const board = document.getElementById('gameBoard');
 const scoreElement = document.getElementById('scoreValue');
-const finalScoreElement = document.getElementById('finalScore');
-const gameOverScreen = document.getElementById('gameOver');
+const lastScoreElement = document.getElementById('lastScore');
+const lastScoreValueElement = document.getElementById('lastScoreValue');
 const scoresList = document.getElementById('scoresList');
+const nameInput = document.getElementById('nameInput');
+const playerNameInput = document.getElementById('playerName');
+const localTab = document.getElementById('localTab');
+const globalTab = document.getElementById('globalTab');
+
 const size = 15;
-let snake = [{x: 7, y: 7}];
-let food = {x: 5, y: 5};
+let snake = [];
+let food = { x: 0, y: 0 };
 let direction = 'right';
 let score = 0;
-let gameLoop;
+let gameLoop = null;
 let touchStartX = 0;
 let touchStartY = 0;
 let highScores = [];
-const MAX_HIGH_SCORES = 5;
+let globalScores = [];
+let currentView = 'global';
+let playerName = localStorage.getItem('playerName') || '';
+const MAX_HIGH_SCORES = 10;
+const GAME_SPEED = 150; // milliseconds between moves
+let isPaused = false;
+
+// Ask for player name if not set
+function askPlayerName() {
+    if (!playerName) {
+        nameInput.style.display = 'flex';
+        playerNameInput.value = ''; // Clear any previous input
+        playerNameInput.focus();
+        
+        // Pause the game
+        isPaused = true;
+        if (gameLoop) {
+            clearInterval(gameLoop);
+            gameLoop = null;
+        }
+        
+        // Handle Enter key press
+        playerNameInput.onkeydown = function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                submitPlayerName();
+            }
+        };
+
+        // Remove any previous event listeners
+        playerNameInput.oninput = null;
+        playerNameInput.onkeyup = null;
+        
+        return false;
+    }
+    return true;
+}
+
+// Submit player name
+function submitPlayerName() {
+    const name = playerNameInput.value.trim();
+    if (name) {
+        playerName = name;
+        localStorage.setItem('playerName', playerName);
+        nameInput.style.display = 'none';
+        
+        // Resume game
+        isPaused = false;
+        if (!gameLoop) {
+            gameLoop = setInterval(moveSnake, GAME_SPEED);
+        }
+        
+        if (score > 0) {
+            saveGlobalScore(playerName, score);
+        }
+    }
+}
 
 // Load high scores from localStorage
 function loadHighScores() {
     const saved = localStorage.getItem('snakeHighScores');
-    highScores = saved ? JSON.parse(saved) : [];
+    try {
+        highScores = saved ? JSON.parse(saved) : [];
+        // Convert old format scores to new format if needed
+        if (highScores.length > 0 && typeof highScores[0] !== 'object') {
+            highScores = highScores.map(score => ({
+                name: playerName || 'Anonymous',
+                score: score,
+                date: new Date().toISOString()
+            }));
+            saveHighScores();
+        }
+    } catch (e) {
+        console.error('Error loading high scores:', e);
+        highScores = [];
+    }
     updateHighScoresDisplay();
 }
 
 // Save high scores to localStorage
 function saveHighScores() {
-    localStorage.setItem('snakeHighScores', JSON.stringify(highScores));
-    updateHighScoresDisplay();
+    try {
+        localStorage.setItem('snakeHighScores', JSON.stringify(highScores));
+        updateHighScoresDisplay();
+    } catch (e) {
+        console.error('Error saving high scores:', e);
+    }
+}
+
+// Load global scores from Firebase
+function loadGlobalScores() {
+    if (!scoresRef) {
+        console.error('Firebase not initialized');
+        globalScores = [];
+        updateHighScoresDisplay();
+        return;
+    }
+
+    try {
+        // Show loading state
+        const scoresList = document.getElementById('scoresList');
+        scoresList.innerHTML = '<li class="loading">Loading global scores...</li>';
+        
+        // Use orderByChild to sort by score in descending order
+        scoresRef.orderByChild('score')
+            .limitToLast(MAX_HIGH_SCORES)
+            .once('value')
+            .then((snapshot) => {
+                globalScores = [];
+                // Convert to array and sort by score (descending)
+                snapshot.forEach((childSnapshot) => {
+                    globalScores.push(childSnapshot.val());
+                });
+                globalScores.sort((a, b) => b.score - a.score);
+                console.log('Global scores loaded:', globalScores); // Debug log
+                updateHighScoresDisplay();
+            })
+            .catch((error) => {
+                console.error('Error loading global scores:', error);
+                globalScores = [];
+                updateHighScoresDisplay();
+            });
+    } catch (error) {
+        console.error('Error in loadGlobalScores:', error);
+        globalScores = [];
+        updateHighScoresDisplay();
+    }
+}
+
+// Save score to Firebase
+function saveGlobalScore(name, score) {
+    if (!scoresRef) {
+        console.error('Firebase not initialized');
+        return;
+    }
+
+    if (!name || !score) {
+        console.error('Invalid score data:', { name, score });
+        return;
+    }
+    
+    const newScore = {
+        name: name,
+        score: score,
+        timestamp: Date.now()
+    };
+
+    console.log('Saving score:', newScore); // Debug log
+
+    // Save score immediately and reload leaderboard
+    scoresRef.push(newScore)
+        .then(() => {
+            console.log('Score saved successfully');
+            // Force reload global scores
+            setTimeout(loadGlobalScores, 500); // Small delay to ensure database update
+        })
+        .catch(error => {
+            console.error('Error saving score:', error);
+        });
+}
+
+// Check if the score qualifies for global leaderboard
+function checkGlobalHighScore(score) {
+    if (globalScores.length < MAX_HIGH_SCORES) return true;
+    return score > globalScores[globalScores.length - 1].score;
 }
 
 // Update the display of high scores
 function updateHighScoresDisplay() {
+    const scoresList = document.getElementById('scoresList');
     scoresList.innerHTML = '';
-    highScores
-        .sort((a, b) => b - a)
-        .slice(0, MAX_HIGH_SCORES)
-        .forEach((score, index) => {
+    
+    const scores = currentView === 'local' ? highScores : globalScores;
+    
+    if (scores && scores.length > 0) {
+        scores.forEach((score, index) => {
             const li = document.createElement('li');
-            li.className = 'score-item' + (score === highScores[0] ? ' new-high-score' : '');
+            li.className = 'score-item';
+            const date = new Date(score.timestamp || Date.now()).toLocaleDateString();
             li.innerHTML = `
                 <span class="score-rank">#${index + 1}</span>
-                <span class="score-value">${score}</span>
+                <span class="score-name">${score.name}</span>
+                <span class="score-value">${score.score}</span>
+                <span class="score-date">${date}</span>
             `;
             scoresList.appendChild(li);
         });
+    } else {
+        const li = document.createElement('li');
+        li.className = 'score-item';
+        li.innerHTML = `
+            <span class="score-name">
+                ${currentView === 'local' ? 'No personal scores yet!' : 'No global scores yet!'}
+            </span>
+        `;
+        scoresList.appendChild(li);
+    }
+}
+
+// Format date for display
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diff = now - date;
+    const seconds = Math.floor(diff / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (days > 7) {
+        return date.toLocaleDateString();
+    } else if (days > 0) {
+        return `${days}d ago`;
+    } else if (hours > 0) {
+        return `${hours}h ago`;
+    } else if (minutes > 0) {
+        return `${minutes}m ago`;
+    } else {
+        return 'Just now';
+    }
 }
 
 // Check if the current score is a high score
 function checkHighScore(score) {
-    const lowestScore = highScores.length < MAX_HIGH_SCORES ? 0 : Math.min(...highScores);
+    const lowestScore = highScores.length < MAX_HIGH_SCORES ? 0 : Math.min(...highScores.map(s => s.score));
     if (score > lowestScore || highScores.length < MAX_HIGH_SCORES) {
-        highScores.push(score);
-        highScores.sort((a, b) => b - a);
+        const newScore = {
+            name: playerName || 'Anonymous',
+            score: score,
+            date: new Date().toISOString()
+        };
+        highScores.push(newScore);
+        highScores.sort((a, b) => b.score - a.score);
         if (highScores.length > MAX_HIGH_SCORES) {
             highScores.pop();
         }
@@ -58,6 +278,21 @@ function checkHighScore(score) {
     }
     return false;
 }
+
+// Handle tab switching
+localTab.addEventListener('click', () => {
+    currentView = 'local';
+    localTab.classList.add('active');
+    globalTab.classList.remove('active');
+    updateHighScoresDisplay();
+});
+
+globalTab.addEventListener('click', () => {
+    currentView = 'global';
+    globalTab.classList.add('active');
+    localTab.classList.remove('active');
+    updateHighScoresDisplay();
+});
 
 // Create the game board
 function initializeBoard() {
@@ -89,6 +324,8 @@ function updateGame() {
 }
 
 function moveSnake() {
+    if (isPaused) return;
+    
     const head = {...snake[0]};
 
     switch(direction) {
@@ -98,14 +335,9 @@ function moveSnake() {
         case 'right': head.x++; break;
     }
 
-    // Check collision with walls
-    if (head.x < 0 || head.x >= size || head.y < 0 || head.y >= size) {
-        gameOver();
-        return;
-    }
-
-    // Check collision with self
-    if (snake.some(segment => segment.x === head.x && segment.y === head.y)) {
+    // Check collision with walls or self
+    if (head.x < 0 || head.x >= size || head.y < 0 || head.y >= size ||
+        snake.some(segment => segment.x === head.x && segment.y === head.y)) {
         gameOver();
         return;
     }
@@ -131,17 +363,51 @@ function generateFood() {
     } while (snake.some(segment => segment.x === food.x && segment.y === food.y));
 }
 
+function showLastScore() {
+    lastScoreValueElement.textContent = score;
+    lastScoreElement.style.display = 'block';
+    setTimeout(() => {
+        lastScoreElement.style.opacity = '0';
+        setTimeout(() => {
+            lastScoreElement.style.display = 'none';
+            lastScoreElement.style.opacity = '0.8';
+        }, 2000);
+    }, 3000);
+}
+
 function gameOver() {
     clearInterval(gameLoop);
-    finalScoreElement.textContent = score;
-    const isHighScore = checkHighScore(score);
+    gameLoop = null;
+    
+    // Update last score display
+    lastScoreElement.style.display = 'block';
+    lastScoreElement.querySelector('#lastScoreValue').textContent = score;
+    
+    // Check if it's a high score
+    const isHighScore = !highScores.length || score > highScores[0].score;
     if (isHighScore) {
-        finalScoreElement.classList.add('new-high-score');
-    } else {
-        finalScoreElement.classList.remove('new-high-score');
+        const scoreData = {
+            score: score,
+            name: playerName || 'Anonymous',
+            date: new Date().toISOString()
+        };
+        highScores.unshift(scoreData);
+        highScores.sort((a, b) => b.score - a.score);
+        highScores = highScores.slice(0, MAX_HIGH_SCORES);
+        saveHighScores();
     }
-    gameOverScreen.style.display = 'flex';
-    setTimeout(() => gameOverScreen.classList.add('visible'), 0);
+    
+    // Always try to save to global leaderboard
+    if (score > 0) {
+        if (playerName) {
+            saveGlobalScore(playerName, score);
+        } else {
+            askPlayerName();
+        }
+    }
+    
+    updateHighScoresDisplay();
+    resetGame();
 }
 
 function resetGame() {
@@ -149,11 +415,9 @@ function resetGame() {
     direction = 'right';
     score = 0;
     scoreElement.textContent = score;
-    finalScoreElement.classList.remove('new-high-score');
     generateFood();
-    gameOverScreen.classList.remove('visible');
-    setTimeout(() => gameOverScreen.style.display = 'none', 300);
-    gameLoop = setInterval(moveSnake, 150);
+    updateGame();
+    gameLoop = setInterval(moveSnake, GAME_SPEED);
 }
 
 function changeDirection(newDirection) {
@@ -170,6 +434,11 @@ function changeDirection(newDirection) {
 // Handle keyboard controls
 function setupKeyboardControls() {
     document.addEventListener('keydown', (e) => {
+        // Don't handle game controls if name input is active
+        if (nameInput.style.display === 'flex') {
+            return;
+        }
+
         const key = e.key.toLowerCase();
         const directionMap = {
             'w': 'up', 'arrowup': 'up',
@@ -242,11 +511,16 @@ document.addEventListener('dblclick', (e) => {
 
 // Initialize game
 function init() {
+    loadGlobalScores();
     loadHighScores();
     initializeBoard();
     setupKeyboardControls();
     setupTouchControls();
+    if (!playerName) {
+        askPlayerName();
+    }
     resetGame();
+    globalTab.classList.add('active');
 }
 
 // Start the game when the page loads

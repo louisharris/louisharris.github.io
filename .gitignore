@@ -11,6 +11,9 @@ yarn.lock
 .env.local
 .env.*.local
 
+# Firebase config
+firebase-config.js
+
 # Build output
 dist/
 build/
