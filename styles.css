@@ -8,7 +8,7 @@
 }
 body {
     margin: 0;
-    padding: 2rem;
+    padding: 1rem;
     min-height: 100vh;
     background: var(--background);
     color: var(--text);
@@ -16,6 +16,8 @@ body {
     display: flex;
     justify-content: center;
     align-items: flex-start;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
 }
 .game-wrapper {
     display: flex;
@@ -173,10 +175,16 @@ h1 {
     }
 }
 @media (max-width: 900px) {
+    body {
+        padding: 0.5rem;
+        align-items: flex-start;
+    }
+
     .game-wrapper {
         flex-direction: column;
         align-items: center;
         gap: 1rem;
+        padding-bottom: 2rem; /* Add space at bottom for mobile */
     }
 
     .game-container {
@@ -185,8 +193,14 @@ h1 {
     }
 
     .leaderboard {
-        width: 100%;
-        position: static;
+        width: calc(100% - 2rem);
+        padding: 1rem;
+        margin: 0.5rem auto;
+        position: relative; /* Remove sticky positioning */
+    }
+
+    .scores-list {
+        max-height: 200px;
     }
 
     #gameBoard {
@@ -203,9 +217,21 @@ h1 {
     .mobile-controls {
         margin-top: 1.5rem;
     }
-
+}
+@media (max-width: 480px) {
     body {
-        padding: 0.5rem;
+        padding: 0.25rem;
+    }
+
+    .game-wrapper {
+        gap: 0.5rem;
+        padding-bottom: 1rem;
+    }
+    
+    .leaderboard {
+        width: calc(100% - 1.5rem);
+        padding: 0.75rem;
+        margin: 0.25rem auto;
     }
 }
 .game-over {
