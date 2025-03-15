@@ -8,7 +8,7 @@
 }
 body {
     margin: 0;
-    padding: 2rem;
+    padding: 1rem;
     min-height: 100vh;
     background: var(--background);
     color: var(--text);
@@ -16,6 +16,8 @@ body {
     display: flex;
     justify-content: center;
     align-items: flex-start;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
 }
 .game-wrapper {
     display: flex;
@@ -173,10 +175,16 @@ h1 {
     }
 }
 @media (max-width: 900px) {
+    body {
+        padding: 0.5rem;
+        align-items: flex-start;
+    }
+
     .game-wrapper {
         flex-direction: column;
         align-items: center;
         gap: 1rem;
+        padding-bottom: 2rem; /* Add space at bottom for mobile */
     }
 
     .game-container {
@@ -185,8 +193,14 @@ h1 {
     }
 
     .leaderboard {
-        width: 100%;
-        position: static;
+        width: calc(100% - 2rem);
+        padding: 1rem;
+        margin: 0.5rem auto;
+        position: relative; /* Remove sticky positioning */
+    }
+
+    .scores-list {
+        max-height: 200px;
     }
 
     #gameBoard {
@@ -203,9 +217,21 @@ h1 {
     .mobile-controls {
         margin-top: 1.5rem;
     }
-
+}
+@media (max-width: 480px) {
     body {
-        padding: 0.5rem;
+        padding: 0.25rem;
+    }
+
+    .game-wrapper {
+        gap: 0.5rem;
+        padding-bottom: 1rem;
+    }
+    
+    .leaderboard {
+        width: calc(100% - 1.5rem);
+        padding: 0.75rem;
+        margin: 0.25rem auto;
     }
 }
 .game-over {
@@ -289,90 +315,135 @@ h1 {
     background: var(--surface);
     padding: 1.5rem;
     border-radius: 24px;
-    width: 300px;
-    position: sticky;
-    top: 2rem;
+    min-width: 280px;
+    box-shadow: 
+        0 4px 6px -1px rgba(0, 0, 0, 0.1),
+        0 2px 4px -2px rgba(0, 0, 0, 0.1);
 }
+
 .leaderboard h2 {
-    font-size: clamp(1.5rem, 4vw, 2rem);
-    font-weight: 600;
+    font-size: 1.5rem;
+    margin: 0 0 1rem;
     background: linear-gradient(135deg, var(--primary), var(--secondary));
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
-    margin-bottom: 1rem;
-    text-align: center;
 }
+
+.leaderboard-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.tab-btn {
+    flex: 1;
+    background: none;
+    border: none;
+    color: var(--text);
+    padding: 0.5rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    opacity: 0.7;
+    transition: all 0.2s ease;
+}
+
+.tab-btn.active {
+    background: var(--primary);
+    opacity: 1;
+}
+
 .scores-list {
     list-style: none;
     padding: 0;
+    margin: 0;
+    max-height: 300px;
+    overflow-y: auto;
 }
-.score-item {
-    display: grid;
-    grid-template-columns: auto 1fr auto auto;
-    gap: 1rem;
+
+.scores-list li {
+    display: flex;
+    justify-content: space-between;
     align-items: center;
     padding: 0.75rem;
+    border-radius: 8px;
     margin-bottom: 0.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    transition: background 0.2s ease;
+}
+
+.scores-list li:hover {
     background: rgba(255, 255, 255, 0.05);
-    border-radius: 12px;
-    transition: transform 0.2s ease;
 }
-.score-item:hover {
-    transform: translateX(4px);
-}
-.score-rank {
-    font-weight: 600;
-    color: var(--primary);
-}
-.score-name {
-    font-weight: 500;
-    color: var(--text);
+
+.scores-list .player-name {
+    font-weight: 400;
+    margin-right: 1rem;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-.score-date {
-    font-size: 0.8rem;
-    color: var(--text);
-    opacity: 0.7;
-}
-.score-value {
+
+.scores-list .score {
     font-weight: 600;
-    color: var(--accent);
-    margin-left: auto;
+    color: var(--primary);
+    margin: 0;
 }
-.new-high-score {
-    animation: highScorePulse 2s infinite;
+
+@media (max-width: 900px) {
+    .game-wrapper {
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .game-container {
+        padding: 1rem;
+        width: 100%;
+    }
+
+    .leaderboard {
+        width: calc(100% - 3rem);
+        padding: 1rem;
+        margin: 0 auto;
+    }
+
+    .scores-list {
+        max-height: 200px;
+    }
+
+    .scores-list li {
+        padding: 0.5rem 0.75rem;
+        margin-bottom: 0.25rem;
+        font-size: 0.9rem;
+    }
+
+    .tab-btn {
+        padding: 0.4rem;
+        font-size: 0.85rem;
+    }
+
+    .leaderboard h2 {
+        font-size: 1.25rem;
+        margin-bottom: 0.75rem;
+    }
 }
-@keyframes highScorePulse {
-    0% { background: rgba(99, 102, 241, 0.1); }
-    50% { background: rgba(99, 102, 241, 0.2); }
-    100% { background: rgba(99, 102, 241, 0.1); }
-}
-.leaderboard-tabs {
-    display: flex;
-    gap: 1rem;
-    margin-bottom: 1rem;
-    justify-content: center;
-}
-.tab-btn {
-    background: rgba(255, 255, 255, 0.1);
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 12px;
-    color: var(--text);
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-family: 'Outfit', sans-serif;
-    font-size: 0.9rem;
-}
-.tab-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
-}
-.tab-btn.active {
-    background: var(--primary);
-    color: var(--surface);
+
+@media (max-width: 480px) {
+    .leaderboard {
+        width: calc(100% - 2rem);
+        padding: 0.75rem;
+    }
+
+    .scores-list {
+        max-height: 180px;
+    }
+
+    .scores-list li {
+        padding: 0.4rem 0.5rem;
+        font-size: 0.85rem;
+    }
 }
 .name-input {
     margin: 1rem 0;
